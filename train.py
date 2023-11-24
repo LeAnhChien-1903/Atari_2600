@@ -7,7 +7,7 @@ import ale_py
 from actor_critic import ActorCritic
 from game import Game
 from ultis import *
-from ale_py.roms import MsPacman, Phoenix, Alien, Assault, KungFuMaster, MarioBros
+from ale_py.roms import MsPacman, Phoenix, Alien, Assault, KungFuMaster, Defender
 
 # Use CUDA
 use_cuda = torch.cuda.is_available()
@@ -28,8 +28,8 @@ game_list = []
 
 game_list.append(Game(Alien, "Alien"))
 game_list.append(Game(Assault, "Assault"))
+game_list.append(Game(Defender, "Defender"))
 game_list.append(Game(KungFuMaster, "KungFuMaster"))
-game_list.append(Game(MarioBros, "MarioBros"))
 game_list.append(Game(MsPacman, "MsPacman"))
 game_list.append(Game(Phoenix, "Phoenix"))
 
@@ -54,9 +54,9 @@ else:
     policy.load_state_dict(torch.load(os.path.join("Parameters", "parameters.pt"), map_location= device))
     print("Load model!")
 
-for game in game_list:
-    observation = game.reset()
-    for iteration in range(num_of_update):
+for iteration in range(num_of_update):
+    for game in game_list:
+        observation = game.reset()
         with torch.no_grad():
             obs_batch = torch.zeros((batch_size, 4, size_of_obs[0], size_of_obs[1])).to(device)
             action_batch = torch.zeros(batch_size).to(device)
@@ -115,27 +115,6 @@ for game in game_list:
             optimizer.step()
         
         torch.save(policy.state_dict(), os.path.join("Parameters", "parameters.pt"))
-
-        # Test policy
-        if iteration % 100 == 0 and iteration != 0:
-            print("Testing policy")
-            observation = game.reset()
-            tested_reward = 0.0
-            done = False
-            test_counter = 0
-
-            while done == False and test_counter < 5000:
-                # Get action
-                obs = convertToTensor(observation, device = device)
-                action, log_prob, entropy, value = policy.get_action(obs)
-                observation, reward, done, info = game.step(game.legal_actions[action])
-                cv2.imshow("Game", game.ale.getScreenRGB())
-                if cv2.waitKey(10) & ord('q') == 0xFF:
-                    break
-                tested_reward += reward
-                test_counter += 1
-            print("Total tested reward: ", tested_reward)
-            cv2.destroyAllWindows()
         # Clear
         del obs_batch
         del action_batch
@@ -149,3 +128,25 @@ for game in game_list:
         del new_value_batch
         del advantage_batch
         del return_batch
+    # Test policy
+    if iteration % 100 == 0 and iteration != 0:
+        print("Testing policy")
+        for game in game_list:
+            observation = game.reset()
+            observation = game.reset()
+            tested_reward = 0.0
+            done = False
+            test_counter = 0
+
+            while done == False and test_counter < 5000:
+                # Get action
+                obs = convertToTensor(observation, device = device)
+                action, log_prob, entropy, value = policy.get_action(obs)
+                observation, reward, done, info = game.step(game.legal_actions[action])
+                # cv2.imshow("Game", game.ale.getScreenRGB())
+                # if cv2.waitKey(10) & ord('q') == 0xFF:
+                #     break
+                tested_reward += reward
+                test_counter += 1
+            print("Total tested reward of {}: {} with {} frames".format(game.name, tested_reward, test_counter))
+            cv2.destroyAllWindows()
