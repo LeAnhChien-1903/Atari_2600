@@ -129,7 +129,7 @@ for iteration in range(num_of_update):
         del advantage_batch
         del return_batch
     # Test policy
-    if iteration % 100 == 0 and iteration != 0:
+    if iteration % 50 == 0 and iteration > 0:
         print("Testing policy")
         for game in game_list:
             observation = game.reset()
@@ -143,9 +143,9 @@ for iteration in range(num_of_update):
                 obs = convertToTensor(observation, device = device)
                 action, log_prob, entropy, value = policy.get_action(obs)
                 observation, reward, done, info = game.step(game.legal_actions[action])
-                # cv2.imshow("Game", game.ale.getScreenRGB())
-                # if cv2.waitKey(10) & ord('q') == 0xFF:
-                #     break
+                cv2.imshow("Game", game.ale.getScreenRGB())
+                if cv2.waitKey(10) & ord('q') == 0xFF:
+                    break
                 tested_reward += reward
                 test_counter += 1
             print("Total tested reward of {}: {} with {} frames".format(game.name, tested_reward, test_counter))
